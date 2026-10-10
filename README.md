@@ -10,7 +10,7 @@ Needs Node.js 20+ (tested on 22).
 ```bash
 npm install
 cp .env.example .env     # optional: defaults are built in
-npm run dev              # http://localhost:3000
+npm run dev              # http://localhost:5001
 ```
 
 The database file (`data/app.db`) is created and filled with **15 sample events** automatically on first run. To reset, stop the server and delete `data/app.db`.
