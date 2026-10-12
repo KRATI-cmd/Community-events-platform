@@ -56,6 +56,24 @@ export function listUpcoming(o: ListOpts) {
   return { items: rows.map(toDto), total, page, pages };
 }
 
+/** Which of these events the user has a reminder for. */
+export function remindedAmong(userId: number, ids: number[]): number[] {
+  if (ids.length === 0) return [];
+  const rows = db
+    .prepare(`SELECT event_id FROM reminders WHERE user_id = ? AND event_id IN (${ids.map(() => "?").join(",")})`)
+    .all(userId, ...ids) as { event_id: number }[];
+  return rows.map((r) => r.event_id);
+}
+
+/** The user's saved card designs for these events, keyed by event id. */
+export function cardsAmong(userId: number, ids: number[]): Record<number, { theme: string; stickers: string[] }> {
+  if (ids.length === 0) return {};
+  const rows = db
+    .prepare(`SELECT event_id, theme, stickers FROM card_designs WHERE user_id = ? AND event_id IN (${ids.map(() => "?").join(",")})`)
+    .all(userId, ...ids) as { event_id: number; theme: string; stickers: string }[];
+  return Object.fromEntries(rows.map((r) => [r.event_id, { theme: r.theme, stickers: JSON.parse(r.stickers) as string[] }]));
+}
+
 export function upcomingCities(): string[] {
   const rows = db
     .prepare("SELECT DISTINCT city FROM events WHERE is_active = 1 AND starts_at > ? ORDER BY city")
@@ -68,7 +86,17 @@ export function getEvent(id: number) {
   return r ? toDto(r) : null;
 }
 
-export function listAll() {
-  const rows = db.prepare("SELECT * FROM events ORDER BY starts_at DESC").all() as Row[];
-  return rows.map(toDto);
+/** Every event (active or not), newest first, one page at a time. Optional text search on title / city / category. */
+export function listAll(page = 1, limit = 10, q?: string) {
+  const where = q
+    ? "WHERE title LIKE @like ESCAPE '\\' OR city LIKE @like ESCAPE '\\' OR category LIKE @like ESCAPE '\\'"
+    : "";
+  const args = q ? { like: `%${likeEscape(q)}%` } : {};
+  const total = (db.prepare(`SELECT COUNT(*) AS n FROM events ${where}`).get(args) as { n: number }).n;
+  const pages = Math.ceil(total / limit);
+  const p = Math.min(Math.max(page, 1), Math.max(pages, 1));
+  const rows = db
+    .prepare(`SELECT * FROM events ${where} ORDER BY starts_at DESC, id DESC LIMIT @limit OFFSET @offset`)
+    .all({ ...args, limit, offset: (p - 1) * limit }) as Row[];
+  return { items: rows.map(toDto), total, page: p, pages };
 }

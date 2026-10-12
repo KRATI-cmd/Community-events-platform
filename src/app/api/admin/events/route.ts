@@ -7,7 +7,8 @@ import { forbidden, ok, parse } from "@/lib/http";
 
 export async function GET(req: Request) {
   if (!(await getAdmin(req))) return forbidden();
-  return ok({ items: listAll() });
+  const sp = new URL(req.url).searchParams;
+  return ok(listAll(Number(sp.get("page")) || 1, Math.min(Number(sp.get("limit")) || 10, 50), sp.get("q")?.trim() || undefined));
 }
 
 const schema = z.object({

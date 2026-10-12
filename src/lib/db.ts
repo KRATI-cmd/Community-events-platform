@@ -62,6 +62,9 @@ function open() {
     );
     db.transaction(() => SEED_EVENTS().forEach((e) => insert.run(e)))();
   }
+  // Older databases were seeded with random placeholder photos; swap in category-matching ones
+  const fix = db.prepare("UPDATE events SET image_url = ? WHERE title = ? AND image_url LIKE 'https://picsum.photos/%'");
+  db.transaction(() => SEED_EVENTS().forEach((e) => fix.run(e.image_url, e.title)))();
   return db;
 }
 

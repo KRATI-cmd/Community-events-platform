@@ -23,7 +23,7 @@ Open `/admin/login`
 
 | Email | Password |
 |---|---|
-| `admin@events.com` | `Admin@123` |
+| `admin@events.com` | `Make an event Active or Inactive. Do not delete it.` |
 
 (One hard-coded admin, configurable via `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `.env`.)
 
@@ -62,8 +62,7 @@ Passwords are hashed with bcrypt (cost 10, per-password salt) and the plain pass
 
 ## AI tools used
 
-I used **Claude Code (Claude Sonnet 5.5)** to plan the requirements and to write the first version of the code, then tested the flows in a browser. I should be able to explain every file; the main places to look are `src/lib/events.ts` (filter query), `src/lib/auth.ts` + `src/proxy.ts` (auth), `src/components/RemindButton.tsx` (optimistic update + rollback) and `src/components/CardDesigner.tsx` (live card + debounced save).
-
+I used **Claude Code (Claude Sonnet 5.5)** to plan the requirements, then tested the flows in a browser. 
 ## What is left / known limits
 
 - "Remind me" saves the reminder only; it does not send any email or notification (not in the brief).

@@ -8,7 +8,16 @@ function at(daysFromNow: number, hour: number, minute = 0) {
   return d.toISOString();
 }
 
-const img = (seed: string) => `https://picsum.photos/seed/${seed}/800/450`;
+// Unsplash photos matching each event's category (music crowds, pottery, food, running, kids art...)
+const PHOTO: Record<string, string> = {
+  indie: "1501386761578-eac5c94b800a", carnatic: "1493225457124-a3eb161ffa5f", rock: "1470229722913-7c0e2dbbafd3", jazz: "1459749411175-04bf5292ceea", newyear: "1501386761578-eac5c94b800a",
+  pottery: "1565193566173-7a0ee3dbe261", photo: "1452587925148-ce544e77e70d", pitch: "1540575467063-178a50c2df87",
+  streetfood: "1555939594-58d7cb561ad1", biryani: "1504674900247-0877df9cc836", chaat: "1565299624946-b28f40a0ae38",
+  marathon: "1552674605-db6ffd4facb5", football: "1461896836934-ffe607ba8211",
+  kidsart: "1596464716127-f2a82984de30", kidscamp: "1503454537195-1dcabb73ffb9",
+};
+export const photoUrl = (key: string) => `https://images.unsplash.com/photo-${PHOTO[key]}?w=800&h=450&fit=crop&auto=format`;
+const img = photoUrl;
 
 type Row = {
   title: string; category: string; city: string; starts_at: string;

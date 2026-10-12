@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { signToken } from "@/lib/auth";
+import { ADMIN_EMAIL, signToken } from "@/lib/auth";
 import { fail, ok, parse } from "@/lib/http";
 
 const schema = z.object({
@@ -14,6 +14,7 @@ export async function POST(req: Request) {
   if ("error" in p) return p.error;
   const { email, password } = p.data;
 
+  if (email === ADMIN_EMAIL.toLowerCase()) return fail("An account with this email already exists", 409);
   if (db.prepare("SELECT 1 FROM users WHERE email = ?").get(email)) {
     return fail("An account with this email already exists", 409);
   }

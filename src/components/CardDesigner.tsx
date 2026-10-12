@@ -2,21 +2,13 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
-import { MAX_STICKERS, STICKERS, STICKER_EMOJI, THEMES, type Sticker, type Theme } from "@/lib/constants";
+import { MAX_STICKERS, STICKERS, STICKER_EMOJI, STICKER_SLOTS as SLOTS, THEME_CLASS, THEMES, type Sticker, type Theme } from "@/lib/constants";
 import type { EventDto } from "@/lib/events";
 import { formatDate } from "@/lib/format";
 import { useAuth } from "./AuthProvider";
 
 type Placed = { key: number; sticker: Sticker }; // key keeps each sticker's animation stable
 type Saved = { theme: Theme; stickers: Sticker[] };
-
-const THEME_CLASS: Record<Theme, string> = {
-  sunset: "from-orange-400 via-rose-500 to-fuchsia-600",
-  ocean: "from-cyan-400 via-sky-500 to-indigo-600",
-  forest: "from-lime-400 via-emerald-500 to-teal-700",
-};
-// Where the 1st, 2nd and 3rd sticker sit on the card (% from top-left)
-const SLOTS = [{ left: 74, top: 8 }, { left: 8, top: 66 }, { left: 76, top: 62 }];
 
 let nextKey = 1;
 
@@ -29,6 +21,7 @@ export default function CardDesigner({ event, initial }: { event: EventDto; init
 
   const lastSaved = useRef<Saved>(initial ?? { theme: "sunset", stickers: [] });
   const firstRun = useRef(true);
+  const unsent = useRef<Saved | null>(null); // a change still waiting for its 500ms timer
 
   // Save shortly after the last change; if it fails, roll the card back
   useEffect(() => {
@@ -36,7 +29,9 @@ export default function CardDesigner({ event, initial }: { event: EventDto; init
     if (!email) return; // not logged in: design stays on screen only
     const draft: Saved = { theme, stickers: stickers.map((s) => s.sticker) };
     setStatus("saving");
+    unsent.current = draft;
     const t = setTimeout(async () => {
+      unsent.current = null;
       try {
         await api(`/api/events/${event.id}/card`, { method: "PUT", json: draft });
         lastSaved.current = draft;
@@ -53,6 +48,11 @@ export default function CardDesigner({ event, initial }: { event: EventDto; init
     return () => clearTimeout(t);
   }, [theme, stickers, email, event.id]);
 
+  // Leaving the page within 500ms of a change must not lose it
+  useEffect(() => () => {
+    if (unsent.current) api(`/api/events/${event.id}/card`, { method: "PUT", json: unsent.current }).catch(() => {});
+  }, [event.id]);
+
   const full = stickers.length >= MAX_STICKERS;
   const add = (s: Sticker) => { if (!full) setStickers((p) => [...p, { key: nextKey++, sticker: s }]); };
   const remove = (key: number) => setStickers((p) => p.filter((x) => x.key !== key));
@@ -60,18 +60,21 @@ export default function CardDesigner({ event, initial }: { event: EventDto; init
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
       <h2 className="text-xl font-bold">Design your card</h2>
-      <p className="mt-1 text-sm text-slate-600">Pick a theme and add up to {MAX_STICKERS} stickers. Tap a sticker on the card to remove it.</p>
+      <p className="mt-1 text-sm text-slate-600">Pick a theme and add up to {MAX_STICKERS} stickers. Tap the × on a sticker to remove it.</p>
 
       <div className="mt-5 grid gap-6 md:grid-cols-[minmax(0,320px)_1fr]">
         {/* Live preview. Each theme is its own layer; fading them gives a smooth switch */}
         <div className="relative mx-auto aspect-[4/5] w-full max-w-xs overflow-hidden rounded-3xl shadow-lg" data-testid="card-preview">
+          {/* Same photo as the event above, so the card matches the event */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={event.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
           {THEMES.map((t) => (
             <div
               key={t}
-              className={`absolute inset-0 bg-gradient-to-br transition-opacity duration-500 ${THEME_CLASS[t]} ${t === theme ? "opacity-100" : "opacity-0"}`}
+              className={`absolute inset-0 bg-gradient-to-br transition-opacity duration-500 ${THEME_CLASS[t]} ${t === theme ? "opacity-75" : "opacity-0"}`}
             />
           ))}
-          <div className="relative flex h-full flex-col justify-end p-5 text-white">
+          <div className="relative flex h-full flex-col justify-end bg-gradient-to-t from-black/60 via-black/10 to-transparent p-5 text-white">
             <span className="mb-2 w-fit rounded-full bg-white/25 px-3 py-1 text-xs font-semibold backdrop-blur">{event.category}</span>
             <h3 className="text-2xl font-extrabold leading-tight drop-shadow">{event.title}</h3>
             <p className="mt-2 text-sm font-medium text-white/90">{formatDate(event.startsAt)}</p>
@@ -82,10 +85,11 @@ export default function CardDesigner({ event, initial }: { event: EventDto; init
               key={p.key}
               onClick={() => remove(p.key)}
               aria-label={`Remove ${p.sticker} sticker`}
-              style={SLOTS[i]}
+              style={{ left: `${SLOTS[i].left}%`, top: `${SLOTS[i].top}%` }}
               className="absolute animate-pop text-5xl transition-all duration-500 hover:scale-110"
             >
               {STICKER_EMOJI[p.sticker]}
+              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold leading-none text-slate-700 shadow">×</span>
             </button>
           ))}
         </div>
@@ -125,7 +129,7 @@ export default function CardDesigner({ event, initial }: { event: EventDto; init
                 </button>
               ))}
             </div>
-            {full && <p className="mt-2 text-xs text-slate-500">Maximum reached. Tap a sticker on the card to remove one.</p>}
+            {full && <p className="mt-2 text-xs text-slate-500">Maximum reached. Tap the × on a sticker to remove one.</p>}
           </div>
 
           <p className="text-sm" aria-live="polite">

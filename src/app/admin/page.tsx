@@ -2,10 +2,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LogOut, Plus } from "lucide-react";
+import { Globe, LogOut, Plus, Search, X } from "lucide-react";
 import { ApiError, api } from "@/lib/api";
 import type { EventDto } from "@/lib/events";
 import { formatDate, formatPrice } from "@/lib/format";
+import Pagination from "@/components/Pagination";
 import { EmptyState, ErrorState, Spinner } from "@/components/States";
 
 export default function AdminPage() {
@@ -15,13 +16,17 @@ export default function AdminPage() {
   const [rowError, setRowError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [retry, setRetry] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [text, setText] = useState(""); // what is typed in the box
+  const [q, setQ] = useState(""); // what was actually searched
 
   useEffect(() => {
     setError(null);
-    api<{ items: EventDto[] }>("/api/admin/events", { cookieAuth: true })
-      .then((r) => setItems(r.items))
+    api<{ items: EventDto[]; page: number; pages: number }>(`/api/admin/events?page=${page}&q=${encodeURIComponent(q)}`, { cookieAuth: true })
+      .then((r) => { setItems(r.items); setPages(r.pages); setPage(r.page); })
       .catch((e: ApiError) => (e.status === 403 ? router.replace("/admin/login") : setError(e.message)));
-  }, [retry, router]);
+  }, [retry, page, q, router]);
 
   async function toggle(ev: EventDto) {
     setBusyId(ev.id);
@@ -38,6 +43,13 @@ export default function AdminPage() {
     }
   }
 
+  function search(e: React.FormEvent) {
+    e.preventDefault();
+    setPage(1);
+    setQ(text.trim());
+  }
+  function clearSearch() { setText(""); setPage(1); setQ(""); }
+
   async function logout() {
     await api("/api/admin/logout", { method: "POST", cookieAuth: true }).catch(() => {});
     router.push("/admin/login");
@@ -46,10 +58,13 @@ export default function AdminPage() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold sm:text-3xl">Admin: events</h1>
+        <h1 className="text-2xl font-bold sm:text-3xl">Events</h1>
         <div className="flex gap-2">
           <Link href="/admin/new" className="inline-flex items-center gap-1 rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
             <Plus className="h-4 w-4" /> Add event
+          </Link>
+          <Link href="/" className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            <Globe className="h-4 w-4" /> View site
           </Link>
           <button onClick={logout} className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
             <LogOut className="h-4 w-4" /> Log out
@@ -57,10 +72,29 @@ export default function AdminPage() {
         </div>
       </div>
 
+      <form onSubmit={search} role="search" className="mb-4 flex gap-2">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            value={text} onChange={(e) => setText(e.target.value)}
+            placeholder="Search events by title, city or category…" aria-label="Search events"
+            className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-9 pr-9 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+          />
+          {text && (
+            <button type="button" onClick={clearSearch} aria-label="Clear search" className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:text-slate-700">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        <button className="inline-flex items-center gap-1 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">
+          <Search className="h-4 w-4" /> Search
+        </button>
+      </form>
+
       {rowError && <p role="alert" className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{rowError}</p>}
       {error ? <ErrorState message={error} onRetry={() => setRetry((n) => n + 1)} />
         : !items ? <Spinner />
-        : items.length === 0 ? <EmptyState title="No events yet" hint="Add the first event to get started." />
+        : items.length === 0 ? <EmptyState title={q ? "No matching events" : "No events yet"} hint={q ? `Nothing found for "${q}".` : "Add the first event to get started."} />
         : (
           <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
             <table className="w-full min-w-[640px] text-left text-sm">
@@ -100,6 +134,9 @@ export default function AdminPage() {
             </table>
           </div>
         )}
+      {items && items.length > 0 && !error && (
+        <Pagination page={page} pages={pages} onChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+      )}
     </div>
   );
 }

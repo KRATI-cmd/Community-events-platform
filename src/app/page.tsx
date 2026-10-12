@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Search, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { CATEGORIES } from "@/lib/constants";
+import { useAuth } from "@/components/AuthProvider";
 import EventResults, { EmptyState, type ListData } from "@/components/EventResults";
 
 type Resp = ListData & { cities: string[] };
@@ -11,6 +12,7 @@ const input =
   "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200";
 
 export default function EventsPage() {
+  const { ready, email } = useAuth();
   const [category, setCategory] = useState("");
   const [city, setCity] = useState("");
   const [search, setSearch] = useState("");
@@ -29,7 +31,9 @@ export default function EventsPage() {
     return () => clearTimeout(t);
   }, [search]);
 
+  // Wait for `ready` so the request carries the login token (reminders + saved designs)
   useEffect(() => {
+    if (!ready) return;
     const ctrl = new AbortController();
     const params = new URLSearchParams({ page: String(page) });
     if (category) params.set("category", category);
@@ -43,7 +47,7 @@ export default function EventsPage() {
       .catch((e) => { if (e.name !== "AbortError") setError(e.message); })
       .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
     return () => ctrl.abort(); // a newer filter change cancels the older request
-  }, [category, city, q, page, retry]);
+  }, [category, city, q, page, retry, ready, email]);
 
   const filtered = !!(category || city || q);
   const clear = useCallback(() => { setCategory(""); setCity(""); setSearch(""); setQ(""); setPage(1); }, []);

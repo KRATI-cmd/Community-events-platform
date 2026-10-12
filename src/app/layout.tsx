@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen font-sans antialiased">
         <AuthProvider>
           <Header />
-          <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">{children}</main>
+          <main className="mx-auto max-w-screen-2xl px-4 py-6 sm:py-8">{children}</main>
         </AuthProvider>
       </body>
     </html>

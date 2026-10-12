@@ -5,7 +5,7 @@ import { Bell, BellRing } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "./AuthProvider";
 
-export default function RemindButton({ eventId, initial }: { eventId: number; initial: boolean }) {
+export default function RemindButton({ eventId, initial, compact = false }: { eventId: number; initial: boolean; compact?: boolean }) {
   const { email } = useAuth();
   const router = useRouter();
   const [on, setOn] = useState(initial);
@@ -34,7 +34,7 @@ export default function RemindButton({ eventId, initial }: { eventId: number; in
         onClick={toggle}
         disabled={pending}
         aria-pressed={on}
-        className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+        className={`inline-flex items-center gap-2 rounded-full font-semibold transition ${compact ? "px-3.5 py-1.5 text-xs" : "px-5 py-2.5 text-sm"} ${
           on ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-indigo-600 text-white hover:bg-indigo-700"
         }`}
       >

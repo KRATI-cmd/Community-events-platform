@@ -1,8 +1,10 @@
 "use client";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api";
+import PasswordInput from "@/components/PasswordInput";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -34,13 +36,19 @@ export default function AdminLoginPage() {
           <input className={input} type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </label>
         <label className="block text-sm font-medium">Password
-          <input className={input} type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+          <PasswordInput className={input} required value={password} onChange={(e) => setPassword(e.target.value)} />
         </label>
         {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
         <button disabled={busy} className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60">
           {busy ? "Please wait…" : "Log in"}
         </button>
       </form>
+      <p className="mt-4 text-center text-sm text-slate-600">
+        Not an admin?{" "}
+        <Link href="/login" className="font-medium text-indigo-600 hover:underline">Visitor log in</Link>
+        {" · "}
+        <Link href="/" className="font-medium text-indigo-600 hover:underline">Browse events</Link>
+      </p>
     </div>
   );
 }

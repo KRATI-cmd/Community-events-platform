@@ -19,7 +19,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-3">
+      <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-2 px-4 py-3">
         <Link href="/" className="flex items-center gap-2 text-lg font-bold text-slate-900">
           <CalendarDays className="h-5 w-5 text-indigo-600" /> Events Board
         </Link>
@@ -41,9 +41,7 @@ export default function Header() {
           {ready && !email && (
             <>
               <Link href="/login" className={link(path === "/login")}>Log in</Link>
-              <Link href="/signup" className="rounded-full bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700">
-                Sign up
-              </Link>
+              <Link href="/signup" className={link(path === "/signup")}>Sign up</Link>
             </>
           )}
         </nav>
